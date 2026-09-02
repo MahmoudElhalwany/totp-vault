@@ -15,7 +15,7 @@ dependencies = ["cryptography>=42"]
 [project.optional-dependencies]
 qr = [
     "pyobjc-framework-Vision>=10; sys_platform == 'darwin'",
-    "pyobjc-framework-Quartz>=10; sys_platform == 'darwin'",
+    "pyobjc-framework-Quartz>=12.2.2; sys_platform == 'darwin'",
 ]
 
 [project.scripts]
