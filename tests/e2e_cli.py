@@ -13,30 +13,53 @@ ENV = {**os.environ, "TVAULT_HOME": tmp, "TVAULT_VAULT": f"{tmp}/vault.json",
        "PYTHONPATH": str(ROOT), "NO_COLOR": "1", "TERM": "dumb"}
 PW = "e2e master password"
 
-def run_pty(args, inputs, timeout=30):
-    """Run tvault under a pty, feeding `inputs` lines as prompts appear."""
+PROMPT_ENDINGS = (": ", "] ", "? ")
+
+
+def at_prompt(text: str) -> bool:
+    """True when the child is sitting at a prompt waiting for input."""
+    return text.endswith(PROMPT_ENDINGS)
+
+
+def run_pty(args, inputs, timeout=60):
+    """Run tvault under a pty, answering prompts as they appear.
+
+    Input is only written once a prompt is actually on screen. getpass puts
+    the terminal into no-echo mode with TCSAFLUSH, which discards anything
+    typed ahead of it — so feeding on a timer races the child's startup and
+    silently loses the password on a cold run.
+    """
     pid, fd = pty.fork()
     if pid == 0:
         os.execve(PY, [PY, "-m", "tvault", *args], ENV)
 
-    out, queue, deadline, status = b"", list(inputs), time.time() + timeout, None
+    out, queue, status = b"", list(inputs), None
+    fresh_output = False           # new output since the last thing we sent
+    deadline = time.time() + timeout
+
     while time.time() < deadline:
-        ready, _, _ = select.select([fd], [], [], 0.4)
+        ready, _, _ = select.select([fd], [], [], 0.3)
         if ready:
             try:
                 chunk = os.read(fd, 4096)
-            except OSError:      # pty closed: the child exited
+            except OSError:        # pty closed: the child exited
                 break
             if not chunk:
                 break
             out += chunk
-        elif queue:
+            fresh_output = True
+            continue
+
+        text = out.decode("utf-8", "replace")
+        if queue and fresh_output and at_prompt(text):
             os.write(fd, (queue.pop(0) + "\n").encode())
-            time.sleep(0.15)
-        else:
+            fresh_output = False
+            continue
+        if not queue:
             done, status = os.waitpid(pid, os.WNOHANG)
             if done:
                 break
+
     try:
         os.close(fd)
     except OSError:
@@ -158,8 +181,12 @@ results.append(step("add --login skips the secret prompt",
 
 # 19. a QR error is a clean message, never a traceback
 rc, out = run(["import", "--qr", "/nonexistent/nope.png"])
+# The exact message depends on whether a QR backend is installed: with one it
+# is "no such file", without one it explains how to install a decoder. What
+# must hold either way is a clean single-line error and a non-zero exit.
 results.append(step("QR failure prints a clean error, not a traceback",
-                    rc == 1 and "Traceback" not in out and "no such file" in out, out))
+                    rc == 1 and "Traceback" not in out and out.lstrip().startswith("error:")
+                    and ("no such file" in out or "no local QR decoder" in out), out))
 
 # 20. --dry-run writes nothing
 rc, before = run(["ls"])
