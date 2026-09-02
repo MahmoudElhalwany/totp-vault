@@ -19,6 +19,20 @@ export TVAULT_HOME=/tmp/tvault-dev
 export TVAULT_VAULT=/tmp/tvault-dev/vault.json
 ```
 
+## How changes land
+
+`main` is protected: no direct pushes, and every pull request needs a green CI
+run across Linux and macOS plus one approving review before it can merge.
+Conversations must be resolved, and history is kept linear — squash or rebase
+rather than merge commits.
+
+```sh
+git checkout -b fix/autofill-on-example-com
+# ... work, commit ...
+git push -u origin fix/autofill-on-example-com
+gh pr create
+```
+
 ## Before opening a pull request
 
 ```sh

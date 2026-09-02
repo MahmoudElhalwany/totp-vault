@@ -1,0 +1,9 @@
+# Every change gets a review request from the maintainer.
+* @MahmoudElhalwany
+
+# Security-sensitive areas: please flag these clearly in the PR description.
+/tvault/crypto.py      @MahmoudElhalwany
+/tvault/vault.py       @MahmoudElhalwany
+/tvault/agent.py       @MahmoudElhalwany
+/tvault/nativehost.py  @MahmoudElhalwany
+/extension/            @MahmoudElhalwany

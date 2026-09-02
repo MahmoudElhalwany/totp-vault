@@ -1,0 +1,39 @@
+name: Autofill did not work on a site
+description: The extension filled the wrong field, or nothing at all
+labels: ["autofill"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Autofill heuristics are the most site-specific part of tvault, so
+        concrete markup helps enormously.
+
+  - type: input
+    id: site
+    attributes:
+      label: Site
+      description: The login page URL, if it is public.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: outcome
+    attributes:
+      label: What happened
+      options:
+        - Nothing was filled
+        - Username filled, password did not
+        - Password filled, username did not
+        - The one-time code did not go in
+        - The wrong field was filled
+    validations:
+      required: true
+
+  - type: textarea
+    id: markup
+    attributes:
+      label: Field markup
+      description: >-
+        Right-click the field, Inspect, and paste the `<input>` tag. Remove any
+        values.
+      render: html

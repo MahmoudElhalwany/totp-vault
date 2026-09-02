@@ -1,0 +1,10 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/MahmoudElhalwany/tvault/security/advisories/new
+    about: >-
+      Please do NOT open a public issue for anything that could expose vault
+      contents. Use private vulnerability reporting instead. See SECURITY.md.
+  - name: Question or idea
+    url: https://github.com/MahmoudElhalwany/tvault/discussions
+    about: Ask about usage or float an idea before writing code.
