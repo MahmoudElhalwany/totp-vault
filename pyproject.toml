@@ -7,7 +7,7 @@ name = "tvault"
 version = "1.0.0"
 description = "Local encrypted TOTP and password vault for the terminal, with a Chrome extension."
 requires-python = ">=3.10"
-dependencies = ["cryptography>=42"]
+dependencies = ["cryptography>=50.0.1"]
 
 # Local QR decoding, so a Google Authenticator export never has to be
 # pasted into a website. macOS uses Apple's Vision framework; on Linux
