@@ -23,7 +23,7 @@ sys.path.insert(0, str(ROOT))
 
 from tvault import agent, otpauth  # noqa: E402
 from tvault.crypto import VaultCryptoError, gen_password  # noqa: E402
-from tvault.install import extension_id, host_manifest  # noqa: E402
+from tvault.install import extension_id, host_manifest, write_launchers  # noqa: E402
 from tvault.vault import (  # noqa: E402
     Entry,
     Vault,
@@ -396,6 +396,52 @@ class TestInstall(unittest.TestCase):
         manifest = host_manifest(Path("/tmp/tvault-host"), extension_id())
         self.assertEqual(manifest["allowed_origins"], [f"chrome-extension://{extension_id()}/"])
         self.assertEqual(manifest["type"], "stdio")
+
+
+class TestLaunchers(TempHome):
+    """Regression cover for the generated CLI and native-host launchers."""
+
+    def test_launcher_keeps_the_venv_interpreter(self):
+        """sys.executable must not be symlink-resolved.
+
+        Inside a virtualenv, <venv>/bin/python is a symlink to the base
+        interpreter. Resolving it produces a launcher that runs the base
+        interpreter, which silently loses every package installed in the venv
+        — the vault still opened, but optional extras such as the QR decoder
+        vanished with a misleading "not installed" message.
+        """
+        cli, host = write_launchers()
+        expected = os.path.abspath(sys.executable)
+
+        for launcher in (cli, host):
+            text = launcher.read_text()
+            self.assertIn(f'"{expected}"', text, f"{launcher.name} lost the running interpreter")
+            resolved = str(Path(sys.executable).resolve())
+            if resolved != expected:
+                self.assertNotIn(
+                    f'"{resolved}"', text,
+                    f"{launcher.name} resolved the symlink and escaped the venv",
+                )
+
+    def test_launcher_interpreter_lives_in_the_current_prefix(self):
+        """Whatever prefix is running the tests must be the one baked in."""
+        cli, _ = write_launchers()
+        interpreter = None
+        for line in cli.read_text().splitlines():
+            if "exec " in line:
+                interpreter = [p for p in line.split('"') if "python" in p][0]
+        self.assertIsNotNone(interpreter)
+        self.assertTrue(
+            Path(interpreter).is_relative_to(Path(sys.prefix))
+            or Path(interpreter) == Path(os.path.abspath(sys.executable)),
+            f"{interpreter} is outside the running prefix {sys.prefix}",
+        )
+
+    def test_launchers_are_executable_and_owner_only_dir(self):
+        cli, host = write_launchers()
+        for launcher in (cli, host):
+            self.assertTrue(os.access(launcher, os.X_OK), f"{launcher.name} is not executable")
+        self.assertEqual(cli.parent.parent.stat().st_mode & 0o777, 0o700)
 
 
 if __name__ == "__main__":

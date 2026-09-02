@@ -13,6 +13,7 @@ import hashlib
 import json
 import os
 import stat
+import subprocess
 import sys
 from pathlib import Path
 
@@ -85,7 +86,11 @@ def write_launchers() -> tuple[Path, Path]:
     """Create ~/.tvault/bin/tvault and ~/.tvault/bin/tvault-host."""
     ensure_home()
     bindir = home() / "bin"
-    python = Path(sys.executable).resolve()
+    # NOT .resolve(): inside a virtualenv, sys.executable is <venv>/bin/python,
+    # a symlink to the base interpreter. Resolving it would point the launchers
+    # at that base interpreter, silently dropping every package installed in
+    # the venv. absolute() makes the path absolute without following symlinks.
+    python = Path(os.path.abspath(sys.executable))
     root = project_root()
 
     host = bindir / "tvault-host"
@@ -116,10 +121,63 @@ def host_manifest(host_path: Path, ext_id: str) -> dict:
     }
 
 
+def check_launcher(cli: Path) -> list[str]:
+    """Run the generated launcher and report anything it cannot import.
+
+    Catches the case where the launcher ends up on an interpreter that lacks
+    the project's dependencies, which otherwise only shows up much later as a
+    confusing runtime error.
+    """
+    probe = (
+        "import importlib.util as u, sys;"
+        "print(sys.prefix);"
+        "print('cryptography' if u.find_spec('cryptography') else '');"
+        "import tvault.qr as q; print(q.backend_name() or '')"
+    )
+    try:
+        result = subprocess.run(
+            [str(cli), "--help"], capture_output=True, timeout=30
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return [f"the launcher could not be run: {exc}"]
+    if result.returncode != 0:
+        detail = result.stderr.decode("utf-8", "replace").strip().splitlines()
+        return ["the launcher failed:"] + [f"  {line}" for line in detail[-4:]]
+
+    env = dict(os.environ, PYTHONPATH=str(project_root()))
+    probe_run = subprocess.run(
+        [_launcher_interpreter(cli), "-c", probe],
+        capture_output=True, env=env, timeout=30,
+    )
+    lines = probe_run.stdout.decode("utf-8", "replace").splitlines()
+    problems = []
+    if len(lines) < 3 or not lines[1]:
+        problems.append("cryptography is missing from the interpreter the launcher uses")
+    elif not lines[2]:
+        ui.info("QR decoding is unavailable; 'tvault import --qr' will explain how to enable it")
+    else:
+        ui.info(f"QR decoding via {lines[2]}")
+    return problems
+
+
+def _launcher_interpreter(cli: Path) -> str:
+    """Read back the interpreter path baked into a generated launcher."""
+    for line in cli.read_text(encoding="utf-8").splitlines():
+        if "exec " in line:
+            parts = line.split('"')
+            for part in parts:
+                if "python" in part:
+                    return part
+    return sys.executable
+
+
 def install_chrome(args) -> int:
     ext_id = extension_id()
     cli, host = write_launchers()
     manifest = host_manifest(host, ext_id)
+
+    for problem in check_launcher(cli):
+        ui.warn(problem)
 
     wanted = args.browser or list(browsers().keys())
     installed: list[tuple[str, Path]] = []

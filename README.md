@@ -109,6 +109,7 @@ the seeds never leave your machine.
 3. Import it:
 
 ```sh
+tvault import --qr ~/Downloads/export.png --dry-run   # preview first
 tvault import --qr ~/Downloads/export.png
 ```
 
@@ -171,6 +172,7 @@ tvault edit github -g              # rotate to a freshly generated password
 | `tvault status` | vault path, agent state, time until lock |
 | `tvault passwd` | change the master password (re-encrypts everything) |
 | `tvault import --qr <img>` | import from a QR image, or the clipboard |
+| `tvault import ... --dry-run` | show what would be imported, write nothing |
 | `tvault export` | plaintext dump — asks for confirmation first |
 
 Names match loosely, so `tvault code git` finds `GitHub`. An ambiguous query
@@ -272,6 +274,11 @@ framed protocol to it.
 **`zsh: command not found: tvault`** — the launcher lives in `~/.tvault/bin`.
 Add it to your `PATH` (see Install) and start a new shell, or run `make path`
 for the exact line.
+
+**"no local QR decoder available"** — the launcher in `~/.tvault/bin` is
+pinned to the interpreter that installed it. If you rebuilt the venv or
+installed the QR extra afterwards, re-run `tvault install-chrome`; it reports
+which QR backend the launcher can see. `make qr` installs the decoder.
 
 **"Native host not reachable"** — run `tvault install-chrome`, then reload the
 extension at `chrome://extensions`. If you loaded it from a different folder,

@@ -156,7 +156,21 @@ rc, out = run_pty(["add", "--login"], ["Bank", "acct@example.com", "g", "bank.ex
 results.append(step("add --login skips the secret prompt",
                     "added" in out and "Secret" not in out and "password" in out, out))
 
-# 19. change master password
+# 19. a QR error is a clean message, never a traceback
+rc, out = run(["import", "--qr", "/nonexistent/nope.png"])
+results.append(step("QR failure prints a clean error, not a traceback",
+                    rc == 1 and "Traceback" not in out and "no such file" in out, out))
+
+# 20. --dry-run writes nothing
+rc, before = run(["ls"])
+rc2, out = run(["import", "-", "--dry-run"],
+               stdin="otpauth://totp/Dryrun:me?secret=JBSWY3DPEHPK3PXP&issuer=Dryrun")
+rc3, after = run(["ls"])
+results.append(step("import --dry-run previews without writing",
+                    rc2 == 0 and "Would import" in out and "Dryrun" in out
+                    and "Dryrun" not in after and before == after, out))
+
+# 21. change master password
 rc, out = run_pty(["passwd"], ["new master password", "new master password"])
 run(["lock"])
 rc2, out2 = run(["ls"], stdin="new master password")
@@ -165,7 +179,7 @@ rc3, out3 = run(["ls"], stdin=PW)
 results.append(step("tvault passwd re-encrypts with the new password",
                     "GitHub" in out2 and rc3 != 0 and "decryption failed" in out3, out + out2 + out3))
 
-# 20. gen
+# 22. gen
 rc, out = run(["gen", "-l", "40", "--unambiguous"])
 results.append(step("tvault gen", rc == 0 and len(out.strip()) == 40 and not (set(out.strip()) & set("lI1O0")), out))
 

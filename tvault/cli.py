@@ -11,6 +11,7 @@ import time
 from pathlib import Path
 
 from . import agent, clip, otpauth, ui
+from .qr import QRError
 from .crypto import VaultCryptoError, gen_passphrase, gen_password
 from .vault import (
     Entry,
@@ -459,8 +460,6 @@ def _text_from_qr(args) -> str | None:
 
 
 def _import_text(text: str, args) -> int:
-    vault, key = open_vault(args.vault, args.ttl)
-
     imported = []
     try:
         payload = json.loads(text)
@@ -473,6 +472,24 @@ def _import_text(text: str, args) -> int:
         candidates = [Entry.from_dict(e) for e in payload]
     else:
         candidates = [_entry_from_parsed(p, args) for p in otpauth.parse_any(text)]
+
+    if args.dry_run:
+        print(f"{ui.BOLD}Would import {len(candidates)} entr"
+              f"{'y' if len(candidates) == 1 else 'ies'}{ui.RESET} "
+              f"{ui.DIM}(nothing written){ui.RESET}\n")
+        rows = []
+        for entry in candidates:
+            has = []
+            if entry.has_totp:
+                has.append(f"{ui.CYAN}otp{ui.RESET}")
+            if entry.has_password:
+                has.append(f"{ui.YELLOW}pw{ui.RESET}")
+            rows.append([entry.issuer or entry.name, ui.truncate(entry.username, 34), " ".join(has)])
+        print(ui.table(rows, ["ISSUER", "ACCOUNT", "HAS"]))
+        print(f"\n{ui.DIM}re-run without --dry-run to import{ui.RESET}")
+        return 0
+
+    vault, key = open_vault(args.vault, args.ttl)
 
     for entry in candidates:
         entry.id = Entry(name=entry.name).id  # fresh id, avoid collisions
@@ -699,6 +716,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("file", nargs="?", help="file path, or '-' for stdin")
     p.add_argument("--qr", nargs="*", metavar="IMAGE",
                    help="decode QR code images; with no argument, read the clipboard")
+    p.add_argument("-n", "--dry-run", action="store_true",
+                   help="show what would be imported without writing to the vault")
     p.add_argument("--url", action="append")
     p.add_argument("-f", "--force", action="store_true")
 
@@ -735,7 +754,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         return args.func(args)
-    except (VaultError, VaultCryptoError, otpauth.OtpAuthError, ValueError) as exc:
+    except (VaultError, VaultCryptoError, otpauth.OtpAuthError, QRError, ValueError) as exc:
         ui.err(str(exc))
         return 1
     except Locked as exc:
