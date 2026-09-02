@@ -42,14 +42,17 @@ All three should pass. CI runs them on Linux and macOS across Python
   asserts it.
 - **Never let a secret reach stdout in the native host.** It speaks a framed
   protocol; a stray `print` corrupts the stream. Use `stderr`.
+- **Keep secrets out of anything the popup renders before confirmation.**
+  `scan_qr` previews deliberately carry only the issuer and account name;
+  `tests/test_qr.py` asserts it.
 - Match the surrounding style. No formatter is enforced; the code is plain
   Python with comments that explain *why*, not *what*.
 
 ## Areas that could use help
 
 - Autofill heuristics for sites where `Fill` picks the wrong field.
-- Reading `otpauth://` secrets straight from a QR image or screenshot.
-- Rendering an entry as a QR code for moving a seed to a phone.
+- Rendering an entry as a QR code for moving a seed back to a phone.
+- A pure-Python QR decoder, so `--qr` needs no optional dependency.
 - Firefox support — the native messaging protocol is nearly identical, but the
   manifest location and the ID scheme differ.
 - Linux testing. The code paths exist and CI covers them, but real-world use

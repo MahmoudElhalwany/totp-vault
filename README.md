@@ -93,13 +93,60 @@ Pasting an `otpauth://` URI fills in the name, issuer and account for you.
 `--otp`, `--login` and `--both` skip the menu when you already know which you
 want.
 
-Moving off Google Authenticator? Its **Export accounts** QR encodes an
-`otpauth-migration://` URI. Decode that QR with any reader and pipe it in —
-every account transfers at once:
+### Moving in from Google Authenticator
+
+Google Authenticator's **Export accounts** QR encodes an `otpauth-migration://`
+payload holding every selected account at once. tvault decodes it locally, so
+the seeds never leave your machine.
+
+> **Never paste that payload into an online QR decoder.** One export QR
+> contains every seed you selected. Decode it offline or not at all.
+
+1. On your phone: Google Authenticator → **⋮** → **Transfer accounts** →
+   **Export accounts**, authenticate, pick the accounts, then **Next**. It
+   shows a QR code — several, in batches, if you have many accounts.
+2. Screenshot it and get the image onto your computer (AirDrop is easiest).
+3. Import it:
 
 ```sh
-pbpaste | tvault import -
+tvault import --qr ~/Downloads/export.png
 ```
+
+```
+decoded 1 QR code(s) from 1 image(s) using Apple Vision
+✓ imported 3 entries
+  · GitHub (me@example.com) (TOTP)
+  · Okta (work@corp.com) (TOTP)
+  · AWS (root) (TOTP)
+```
+
+4. Repeat for each QR if the export was split into batches — pass several
+   images at once with `tvault import --qr a.png b.png`.
+5. **Check a few codes against the app before you delete anything**, then
+   remove the screenshots — they are as sensitive as the vault itself:
+
+```sh
+tvault watch                       # compare side by side with your phone
+rm ~/Downloads/export.png
+```
+
+Keep Google Authenticator installed until you're confident in the migration.
+
+### Adding a single account from a QR
+
+If the QR is on a web page, the quickest route is the extension's **Scan QR**
+button — see [In the browser](#in-the-browser). From the terminal, press
+`Cmd-Ctrl-Shift-4` to copy a screen selection to the clipboard, then:
+
+```sh
+tvault import --qr                 # no argument: read the clipboard
+```
+
+On macOS, `make bootstrap` installs the decoder (Apple's Vision framework via
+PyObjC — no Homebrew needed). On Linux, `sudo apt install zbar-tools` or
+`pip install opencv-python-headless`; `make qr` reports which backend is
+active. Without one, tvault says so rather than failing quietly, and you can
+still paste a decoded URI with `tvault import -`.
 
 Passwords live on the same entry, so one record holds the login *and* its 2FA:
 
@@ -123,6 +170,7 @@ tvault edit github -g              # rotate to a freshly generated password
 | `tvault lock` / `unlock` | drop or cache the key |
 | `tvault status` | vault path, agent state, time until lock |
 | `tvault passwd` | change the master password (re-encrypts everything) |
+| `tvault import --qr <img>` | import from a QR image, or the clipboard |
 | `tvault export` | plaintext dump — asks for confirmation first |
 
 Names match loosely, so `tvault code git` finds `GitHub`. An ambiguous query
@@ -138,6 +186,24 @@ including into split six-box 2FA inputs and into login forms inside iframes.
 Fields are set through the native `value` setter followed by real `input` and
 `change` events, so React and Vue forms register the value instead of silently
 reverting it.
+
+**Scan QR** adds an account without leaving the page. When a site shows you a
+2FA setup QR, click it: the extension screenshots the tab, the native host
+decodes the QR locally, and you get a confirmation listing what it found
+before anything is written.
+
+```
+Found on this page
+  GitHub
+  me@example.com
+1 account on this page, will be linked to github.com.
+   [ Add to vault ]  [ Cancel ]
+```
+
+The preview carries no secret into the browser — only the issuer and account
+name. The seed goes straight from the decoder into the vault, and the entry is
+linked to the current site so it surfaces there next time. Rescanning the same
+code is a no-op rather than a duplicate.
 
 ## Security model
 
@@ -155,6 +221,8 @@ reverting it.
   `clipboardWrite` — no host permissions, no content scripts, so it cannot read
   pages until you click it. `list` returns metadata only; a password or seed
   crosses to the browser solely on an explicit click and is never stored there.
+  QR scanning screenshots the tab only on a click, decodes it in the native
+  host, and the preview you confirm contains no secret.
 - **Clipboard**: copies auto-clear after 30 seconds, and only if the clipboard
   still holds the value that was copied.
 
@@ -223,7 +291,8 @@ fixes it; you can also point the Makefile at another interpreter with
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). Autofill fixes for stubborn login
-pages, QR decoding, and Firefox support are all on the wish list.
+pages, Firefox support, and rendering an entry back out as a QR code are all
+on the wish list.
 
 ## License
 

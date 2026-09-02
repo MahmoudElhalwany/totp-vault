@@ -28,6 +28,10 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e . pyflakes
 
+      - name: Install local QR decoder (macOS)
+        if: runner.os == 'macOS'
+        run: python -m pip install -e ".[qr]"
+
       - name: Lint
         run: python -m pyflakes tvault scripts tests
 

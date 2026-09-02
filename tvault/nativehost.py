@@ -14,18 +14,22 @@ Design notes:
 
 from __future__ import annotations
 
+import base64
+import binascii
 import json
 import struct
 import sys
 import traceback
 from pathlib import Path
 
-from . import agent, crypto
+from . import agent, crypto, otpauth
 from .crypto import VaultCryptoError
-from .vault import Vault, VaultError, default_vault_path, derive_from_header, read_header
+from .vault import Entry, Vault, VaultError, default_vault_path, derive_from_header, read_header
 
 _LEN = struct.Struct("=I")
-MAX_INCOMING = 1 << 20   # Chrome caps messages to the host at 1 MB anyway
+# Chrome allows up to 4 GB toward the host; a full-page screenshot for QR
+# scanning is the only large message we expect, so cap well below that.
+MAX_INCOMING = 32 << 20
 PROTOCOL_VERSION = 1
 
 
@@ -166,6 +170,72 @@ def handle(message: dict) -> dict:
         if entry.has_totp and message.get("include_code"):
             payload["code"] = entry.code()
         return payload
+
+    if kind == "scan_qr":
+        # The extension screenshots the current tab and sends it here, so the
+        # QR is decoded locally by the same code path as `tvault import --qr`.
+        from . import qr
+
+        if qr.backend_name() is None:
+            return {"ok": False, "error": qr.INSTALL_HINT}
+        try:
+            image = base64.b64decode(message.get("image", ""), validate=True)
+        except (binascii.Error, ValueError):
+            return {"ok": False, "error": "image was not valid base64"}
+
+        try:
+            payloads = qr.decode_bytes(image)
+        except qr.QRError as exc:
+            return {"ok": False, "error": str(exc)}
+        if not payloads:
+            return {"ok": False, "error": "no QR code found on this page"}
+
+        try:
+            parsed = otpauth.parse_any("\n".join(payloads))
+        except otpauth.OtpAuthError as exc:
+            return {"ok": False, "error": f"QR code is not a 2FA code: {exc}"}
+
+        found = [
+            {
+                "issuer": p["issuer"] or p["name"],
+                "username": p["username"],
+                "digits": p["digits"],
+                "period": p["period"],
+            }
+            for p in parsed
+        ]
+        if not message.get("save"):
+            # Preview only: no secrets cross back, and nothing is written.
+            return {"ok": True, "found": found, "saved": False}
+
+        vault = _open(path)
+        key = agent.get_key(path)
+        if key is None:
+            raise Locked()
+
+        added, skipped = [], []
+        domain = message.get("domain") or ""
+        for item in parsed:
+            entry = Entry(
+                name=item["name"],
+                issuer=item["issuer"],
+                username=item["username"],
+                secret=item["secret"],
+                type=item["type"],
+                algorithm=item["algorithm"],
+                digits=item["digits"],
+                period=item["period"],
+                counter=item["counter"],
+                urls=[domain] if domain else [],
+            )
+            try:
+                vault.add(entry)
+                added.append(entry.label)
+            except VaultError:
+                skipped.append(entry.label)
+        if added:
+            vault.save(key)
+        return {"ok": True, "found": found, "saved": True, "added": added, "skipped": skipped}
 
     if kind == "generate":
         length = int(message.get("length") or 24)

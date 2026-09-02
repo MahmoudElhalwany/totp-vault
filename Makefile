@@ -6,6 +6,7 @@
 #   make setup       create .venv and install dependencies
 #   make install     install the Chrome native messaging host + CLI launcher
 #   make init        create the encrypted vault (prompts for a master password)
+#   make qr          install the local QR decoder (for Google Authenticator import)
 #   make path        print the line to add ~/.tvault/bin to your PATH
 #   make test        unit + native-host integration tests
 #   make e2e         drive the real CLI through a pty
@@ -15,7 +16,7 @@ PY      := $(VENV)/bin/python
 PYTHON  ?= python3
 BIN     := $(HOME)/.tvault/bin
 
-.PHONY: bootstrap setup install init path test e2e lint icons clean uninstall
+.PHONY: bootstrap setup install init qr path test e2e lint icons clean uninstall
 
 bootstrap: setup install
 	@echo
@@ -31,6 +32,11 @@ $(PY):
 	@$(PYTHON) -m venv $(VENV)
 	@$(PY) -m pip install --quiet --upgrade pip
 	@$(PY) -m pip install --quiet -e .
+	@if [ "$$(uname)" = "Darwin" ]; then \
+		echo "==> installing local QR decoder (Apple Vision bridge)"; \
+		$(PY) -m pip install --quiet -e ".[qr]" || \
+			echo "    (optional QR support unavailable; 'tvault import --qr' will explain)"; \
+	fi
 
 setup: $(PY)
 	@echo "==> dependencies installed"
@@ -41,6 +47,10 @@ install: $(PY)
 
 init: $(PY)
 	@if [ -x "$(BIN)/tvault" ]; then "$(BIN)/tvault" init; else $(PY) -m tvault init; fi
+
+qr: $(PY)
+	@$(PY) -m pip install --quiet -e ".[qr]"
+	@$(PY) -c "from tvault import qr; print('QR backend:', qr.backend_name() or 'none')"
 
 path:
 	@if echo "$$PATH" | tr ':' '\n' | grep -qx "$(BIN)"; then \

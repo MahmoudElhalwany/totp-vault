@@ -105,7 +105,20 @@ input[type=password], input[type=search] {
   outline: none;
 }
 input:focus { border-color: var(--accent); }
-#search { margin-bottom: 10px; }
+.toolbar { display: flex; gap: 6px; margin-bottom: 10px; }
+.toolbar #search { margin-bottom: 0; }
+.toolbar .icon-btn { flex: none; white-space: nowrap; }
+
+.action.wide { width: 100%; margin-top: 6px; }
+
+.found {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  margin-bottom: 6px;
+}
+.found .entry-name { font-weight: 600; }
 
 button.primary {
   width: 100%;

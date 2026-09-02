@@ -7,12 +7,15 @@
  * and per-entry `credentials` only on an explicit click.
  *
  * Nothing is written to chrome.storage — no secret outlives this popup.
+ * QR scanning screenshots the tab and hands the image to the native host,
+ * so decoding happens locally and the seed never touches the browser until
+ * it is already in the vault.
  */
 
 const HOST = "com.tvault.host";
 
 const el = (id) => document.getElementById(id);
-const views = ["loading", "error", "locked", "list"];
+const views = ["loading", "error", "locked", "list", "scan"];
 
 let entries = [];
 let codes = {};          // id -> { code, remaining, period, fetchedAt }
@@ -345,6 +348,99 @@ function ring(id) {
 }
 
 el("search").addEventListener("input", render);
+
+/* ---------- scanning a QR code off the page ---------- */
+
+let pendingImage = null;   // base64 PNG awaiting confirmation; cleared after use
+
+el("scan").addEventListener("click", async () => {
+  const button = el("scan");
+  button.disabled = true;
+  button.textContent = "Scanning…";
+  try {
+    // captureVisibleTab is allowed by activeTab, granted when the popup opens.
+    const dataUrl = await chrome.tabs.captureVisibleTab({ format: "png" });
+    const image = dataUrl.slice(dataUrl.indexOf(",") + 1);
+
+    const reply = await send({ type: "scan_qr", image, save: false });
+    if (!reply.ok) {
+      if (reply.locked) return showLocked();
+      return toast(reply.error || "Nothing found");
+    }
+    pendingImage = image;
+    renderFound(reply.found || []);
+    show("scan");
+  } catch (e) {
+    toast(e.message);
+  } finally {
+    button.disabled = false;
+    button.textContent = "Scan QR";
+  }
+});
+
+function renderFound(found) {
+  const container = el("scan-found");
+  container.textContent = "";
+  for (const item of found) {
+    const row = document.createElement("div");
+    row.className = "found";
+
+    const name = document.createElement("div");
+    name.className = "entry-name";
+    name.textContent = item.issuer || "Unnamed";
+    row.append(name);
+
+    if (item.username) {
+      const user = document.createElement("div");
+      user.className = "entry-user";
+      user.textContent = item.username;
+      row.append(user);
+    }
+    container.append(row);
+  }
+  const plural = found.length === 1 ? "account" : "accounts";
+  el("scan-note").textContent =
+    `${found.length} ${plural} on this page` +
+    (currentDomain ? `, will be linked to ${currentDomain}.` : ".");
+}
+
+el("scan-cancel").addEventListener("click", () => {
+  pendingImage = null;
+  show("list");
+});
+
+el("scan-save").addEventListener("click", async () => {
+  if (!pendingImage) return show("list");
+  const button = el("scan-save");
+  button.disabled = true;
+  button.textContent = "Adding…";
+  try {
+    const reply = await send({
+      type: "scan_qr",
+      image: pendingImage,
+      save: true,
+      domain: currentDomain,
+    });
+    if (!reply.ok) {
+      if (reply.locked) return showLocked();
+      return toast(reply.error || "Failed");
+    }
+    const added = reply.added || [];
+    const skipped = reply.skipped || [];
+    toast(
+      added.length
+        ? `Added ${added.length}${skipped.length ? `, ${skipped.length} already there` : ""}`
+        : "Already in the vault"
+    );
+    pendingImage = null;
+    await loadEntries();
+  } catch (e) {
+    toast(e.message);
+  } finally {
+    button.disabled = false;
+    button.textContent = "Add to vault";
+  }
+});
 
 /* ---------- actions ---------- */
 

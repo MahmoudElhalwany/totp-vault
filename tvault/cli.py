@@ -430,9 +430,36 @@ def cmd_gen(args) -> int:
     return 0
 
 
-def cmd_import(args) -> int:
+def _text_from_qr(args) -> str | None:
+    """Decode QR images (or the clipboard) into otpauth URIs."""
+    from . import qr
+
+    backend = qr.backend_name()
+    if backend is None:
+        ui.err(qr.INSTALL_HINT)
+        return None
+
+    payloads: list[str] = []
+    if args.qr:
+        for image in args.qr:
+            found = qr.decode_file(image)
+            if not found:
+                ui.warn(f"no QR code found in {image}")
+            payloads.extend(found)
+    else:
+        payloads = qr.decode_clipboard()
+
+    if not payloads:
+        ui.err("no QR code found")
+        return None
+
+    source = "the clipboard" if not args.qr else f"{len(args.qr)} image(s)"
+    ui.info(f"decoded {len(payloads)} QR code(s) from {source} using {backend}")
+    return "\n".join(payloads)
+
+
+def _import_text(text: str, args) -> int:
     vault, key = open_vault(args.vault, args.ttl)
-    text = sys.stdin.read() if args.file == "-" else Path(args.file).read_text(encoding="utf-8")
 
     imported = []
     try:
@@ -454,14 +481,29 @@ def cmd_import(args) -> int:
             imported.append(entry)
         except VaultError as exc:
             ui.warn(str(exc))
+
     if not imported:
         ui.err("nothing imported")
         return 1
     vault.save(key)
     ui.ok(f"imported {len(imported)} entr{'y' if len(imported) == 1 else 'ies'}")
     for entry in imported:
-        print(f"  {ui.DIM}·{ui.RESET} {entry.label}")
+        marks = "TOTP" if entry.has_totp else "password"
+        print(f"  {ui.DIM}·{ui.RESET} {entry.label} {ui.GREY}({marks}){ui.RESET}")
     return 0
+
+
+def cmd_import(args) -> int:
+    if args.qr is not None:
+        text = _text_from_qr(args)
+        if text is None:
+            return 1
+    elif args.file:
+        text = sys.stdin.read() if args.file == "-" else Path(args.file).read_text(encoding="utf-8")
+    else:
+        ui.err("give a file, '-' for stdin, or --qr to read QR code images")
+        return 1
+    return _import_text(text, args)
 
 
 def cmd_export(args) -> int:
@@ -563,6 +605,7 @@ def build_parser() -> argparse.ArgumentParser:
             "  tvault init\n"
             "  tvault add --uri 'otpauth://totp/GitHub:me?secret=JBSWY3DPEHPK3PXP&issuer=GitHub'\n"
             "  tvault add --interactive\n"
+            "  tvault import --qr ~/Desktop/authenticator-export.png   # Google Authenticator\n"
             "  tvault code github            # prints + copies the current code\n"
             "  tvault watch                  # live view of every code\n"
             "  tvault pass github            # copy the password\n"
@@ -652,8 +695,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("-c", "--copy", action="store_true")
     p.add_argument("--clear", type=int, default=30)
 
-    p = add("import", cmd_import, "import entries from JSON or otpauth URIs")
-    p.add_argument("file", help="file path, or '-' for stdin")
+    p = add("import", cmd_import, "import entries from QR codes, JSON, or otpauth URIs")
+    p.add_argument("file", nargs="?", help="file path, or '-' for stdin")
+    p.add_argument("--qr", nargs="*", metavar="IMAGE",
+                   help="decode QR code images; with no argument, read the clipboard")
     p.add_argument("--url", action="append")
     p.add_argument("-f", "--force", action="store_true")
 

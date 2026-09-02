@@ -32,8 +32,19 @@
       </form>
     </section>
 
+    <section id="view-scan" class="view" hidden>
+      <h2>Found on this page</h2>
+      <div id="scan-found"></div>
+      <p id="scan-note" class="muted"></p>
+      <button type="button" class="primary" id="scan-save">Add to vault</button>
+      <button type="button" class="action wide" id="scan-cancel">Cancel</button>
+    </section>
+
     <section id="view-list" class="view" hidden>
-      <input id="search" type="search" placeholder="Search entries…" autocomplete="off">
+      <div class="toolbar">
+        <input id="search" type="search" placeholder="Search entries…" autocomplete="off">
+        <button type="button" id="scan" class="icon-btn" title="Scan a 2FA QR code on this page">Scan QR</button>
+      </div>
       <div id="entries"></div>
       <p id="empty" class="muted" hidden>No entries match.</p>
     </section>
