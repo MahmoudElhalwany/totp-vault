@@ -1,8 +1,13 @@
-# tvault
+# totp-vault
+
+**A one-time password (TOTP / 2FA) authenticator and password manager for the
+terminal, with a Chrome extension.**
 
 A local, encrypted vault for TOTP codes and passwords — a terminal app and a
 Chrome extension sharing one file on your disk. No account, no sync, no
-server. Nothing ever leaves the machine.
+server. Imports your Google Authenticator export.
+
+The CLI command is `tvault`. Nothing ever leaves the machine.
 
 [![tests](https://github.com/MahmoudElhalwany/totp-vault/actions/workflows/tests.yml/badge.svg)](https://github.com/MahmoudElhalwany/totp-vault/actions/workflows/tests.yml)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
