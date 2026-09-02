@@ -10,3 +10,6 @@ dist/
 *vault.json
 *.tvault-export
 *.pem
+
+# Build artifacts
+dist/

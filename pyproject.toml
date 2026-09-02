@@ -3,11 +3,41 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "tvault"
+name = "totp-vault"
 version = "1.0.0"
-description = "Local encrypted TOTP and password vault for the terminal, with a Chrome extension."
+description = "Local encrypted TOTP authenticator and password vault for the terminal, with a Chrome extension."
+readme = "README.md"
 requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "Mahmoud El-Halwany" }]
+keywords = [
+    "totp", "otp", "2fa", "two-factor-authentication", "authenticator",
+    "google-authenticator", "password-manager", "password-vault", "cli",
+    "chrome-extension", "native-messaging", "encryption", "security", "qrcode",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security :: Cryptography",
+    "Topic :: Utilities",
+]
 dependencies = ["cryptography>=42"]
+
+[project.urls]
+Homepage = "https://github.com/MahmoudElhalwany/totp-vault"
+Repository = "https://github.com/MahmoudElhalwany/totp-vault"
+Issues = "https://github.com/MahmoudElhalwany/totp-vault/issues"
+Security = "https://github.com/MahmoudElhalwany/totp-vault/blob/main/SECURITY.md"
 
 # Local QR decoding, so a Google Authenticator export never has to be
 # pasted into a website. macOS uses Apple's Vision framework; on Linux
