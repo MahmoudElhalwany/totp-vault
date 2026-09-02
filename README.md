@@ -4,7 +4,7 @@ A local, encrypted vault for TOTP codes and passwords — a terminal app and a
 Chrome extension sharing one file on your disk. No account, no sync, no
 server. Nothing ever leaves the machine.
 
-[![tests](https://github.com/MahmoudElhalwany/tvault/actions/workflows/tests.yml/badge.svg)](https://github.com/MahmoudElhalwany/tvault/actions/workflows/tests.yml)
+[![tests](https://github.com/MahmoudElhalwany/totp-vault/actions/workflows/tests.yml/badge.svg)](https://github.com/MahmoudElhalwany/totp-vault/actions/workflows/tests.yml)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ```
@@ -44,8 +44,8 @@ Chromium, Vivaldi, Arc) if you want the extension. macOS and Linux.
 ## Install
 
 ```sh
-git clone https://github.com/MahmoudElhalwany/tvault.git
-cd tvault
+git clone https://github.com/MahmoudElhalwany/totp-vault.git
+cd totp-vault
 make bootstrap        # venv, dependencies, native messaging host
 make init             # choose your master password
 ```

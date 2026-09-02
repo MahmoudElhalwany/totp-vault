@@ -6,8 +6,8 @@ pages, and platform support in particular.
 ## Getting set up
 
 ```sh
-git clone https://github.com/MahmoudElhalwany/tvault.git
-cd tvault
+git clone https://github.com/MahmoudElhalwany/totp-vault.git
+cd totp-vault
 make bootstrap     # venv + native host
 make init          # creates a vault; use a throwaway password for development
 ```

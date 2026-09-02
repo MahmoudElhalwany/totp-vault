@@ -4,7 +4,7 @@ tvault stores authentication secrets, so please treat bugs here as sensitive.
 
 ## Reporting a vulnerability
 
-Use GitHub's **[private vulnerability reporting](https://github.com/MahmoudElhalwany/tvault/security/advisories/new)**
+Use GitHub's **[private vulnerability reporting](https://github.com/MahmoudElhalwany/totp-vault/security/advisories/new)**
 rather than opening a public issue. Include what you can reproduce and, if you
 have one, a proof of concept. Expect a first response within a week.
 
