@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "tvault",
+  "version": "1.0.0",
+  "description": "TOTP codes and passwords from your local tvault, over native messaging. Nothing is stored in the browser.",
+  "minimum_chrome_version": "116",
+  "permissions": [
+    "nativeMessaging",
+    "activeTab",
+    "scripting",
+    "clipboardWrite"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "tvault"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+V",
+        "mac": "Alt+Shift+V"
+      },
+      "description": "Open tvault"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAl5mgKWj4EZqDo2TYGA+nzi9fMkknckCT8vAt/NcLiLb3MHBw4QwtPOFD+sXEgydtpG8O4CvBuTxQzEo/yAjX7eq42eYvKbodz5Z/7yuqKh1WMVx8UjkgwvXfJH+q461LJo6DRmjl42D9cXuHDFHgaFUSd4MK2ZPA9Ut/BWOm0lBgq28Jn+T/2OoEewE/LTHB7RM0d3pXRlJc0Vso9GWadyyEwmZquO2nFRUkt87V+NJU5KyeUNN/LkoshIt6pbj2v6+xHZwtsKI0TzJ28VYOcU1v9zAvFbHYz97PtqaEhJe4uFcL5AY3a5+SrgJQ9iWlQOOq30a1H8UMFq8GlQma3QIDAQAB"
+}

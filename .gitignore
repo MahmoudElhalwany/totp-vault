@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+
+# Never commit a vault, an exported plaintext dump, or the extension's
+# private signing key.
+*vault.json
+*.tvault-export
+*.pem

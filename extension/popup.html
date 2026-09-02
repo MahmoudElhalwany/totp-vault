@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>tvault</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header id="header">
+    <span class="brand">tvault</span>
+    <span id="site" class="site"></span>
+    <button id="lock" class="icon-btn" title="Lock the vault" hidden>Lock</button>
+  </header>
+
+  <main id="main">
+    <section id="view-loading" class="view">
+      <p class="muted">Connecting to the vault…</p>
+    </section>
+
+    <section id="view-error" class="view" hidden>
+      <h2 id="error-title">Can't reach the vault</h2>
+      <p id="error-detail" class="muted"></p>
+      <pre id="error-hint" class="hint"></pre>
+    </section>
+
+    <section id="view-locked" class="view" hidden>
+      <form id="unlock-form">
+        <label for="master">Master password</label>
+        <input id="master" type="password" autocomplete="current-password" autofocus>
+        <p id="unlock-error" class="error" hidden></p>
+        <button type="submit" class="primary" id="unlock-btn">Unlock</button>
+      </form>
+    </section>
+
+    <section id="view-list" class="view" hidden>
+      <input id="search" type="search" placeholder="Search entries…" autocomplete="off">
+      <div id="entries"></div>
+      <p id="empty" class="muted" hidden>No entries match.</p>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+  <script src="popup.js"></script>
+</body>
+</html>
